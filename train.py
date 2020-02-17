@@ -29,7 +29,7 @@ parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden
 parser.add_argument('--niter', type=int, default=21, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=0.001, help='learning rate for Critic, default=0.00005')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
-parser.add_argument('--cuda', help='enables cuda', default=False)
+parser.add_argument('--cuda', help='enables cuda', default=True)
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--encoder', type=str, default='./expr/attentioncnn/encoder_600.pth', help="path to encoder (to continue training)")
 parser.add_argument('--decoder', type=str, default='', help='path to decoder (to continue training)')
@@ -44,6 +44,7 @@ parser.add_argument('--random_sample', default=True, action='store_true', help='
 parser.add_argument('--teaching_forcing_prob', type=float, default=0.5, help='where to use teach forcing')
 parser.add_argument('--max_width', type=int, default=71, help='the width of the featuremap out from cnn')
 opt = parser.parse_args()
+opt.cuda = True if opt.cuda == 'True' else False
 print(opt)
 
 SOS_token = 0
@@ -166,9 +167,14 @@ def val(encoder, decoder, criterion, batchsize, dataset, teach_forcing=False, ma
         decoded_label = []
         decoder_attentions = torch.zeros(len(cpu_texts[0]) + 1, opt.max_width)
         encoder_outputs = encoder(image)            # cnn+biLstm做特征提取
-        target_variable = target_variable#.cuda()
-        decoder_input = target_variable[0]#.cuda()   # 初始化decoder的开始,从0开始输出
-        decoder_hidden = decoder.initHidden(b)#.cuda()
+
+        target_variable = target_variable
+        decoder_input = target_variable[0]   # 初始化decoder的开始,从0开始输出
+        decoder_hidden = decoder.initHidden(b)
+        if opt.cuda:
+            target_variable = target_variable.cuda()
+            decoder_input = decoder_input.cuda()
+            decoder_hidden = decoder_hidden.cuda()
         loss = 0.0
         if not teach_forcing:
             # 预测的时候采用非强制策略，将前一次的输出，作为下一次的输入，直到标签为EOS_TOKEN时停止
@@ -208,18 +214,24 @@ def trainBatch(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer
     '''
     data = train_iter.next()
     cpu_images, cpu_texts = data
-    print(cpu_images.shape, cpu_texts)
+    #print(cpu_images.shape, cpu_texts)
     #exit(0)
 
     b = cpu_images.size(0)
     target_variable = converter.encode(cpu_texts)
-    print(target_variable)
+    #print(target_variable)
     utils.loadData(image, cpu_images)
 
     encoder_outputs = encoder(image)               # cnn+biLstm做特征提取
-    target_variable = target_variable#.cuda()
-    decoder_input = target_variable[0]#.cuda()      # 初始化decoder的开始,从0开始输出
-    decoder_hidden = decoder.initHidden(b)#.cuda()
+
+    target_variable = target_variable
+    decoder_input = target_variable[0]     # 初始化decoder的开始,从0开始输出
+    decoder_hidden = decoder.initHidden(b)
+
+    if opt.cuda:
+        target_variable = target_variable.cuda()
+        decoder_input = decoder_input.cuda()
+        decoder_hidden = decoder_hidden.cuda()
     loss = 0.0
     teach_forcing = True if random.random() > teach_forcing_prob else False
     if teach_forcing:
