@@ -215,7 +215,6 @@ def trainBatch(encoder, decoder, criterion, encoder_optimizer, decoder_optimizer
     data = train_iter.next()
     cpu_images, cpu_texts = data
     #print(cpu_images.shape, cpu_texts)
-    #exit(0)
 
     b = cpu_images.size(0)
     target_variable = converter.encode(cpu_texts)
@@ -281,12 +280,12 @@ if __name__ == '__main__':
                 t1 = time.time()
                 print('time elapsed %d' % (t1-t0))
                 t0 = time.time()
-            break
+            # break
         # do checkpointing
-        # if epoch % opt.saveInterval == 0:
-        #     val(encoder, decoder, criterion, 1, dataset=test_dataset, teach_forcing=False)            # batchsize:1
-        #     torch.save(
-        #         encoder.state_dict(), '{0}/encoder_{1}.pth'.format(opt.experiment, epoch))
-        #     torch.save(
-        #         decoder.state_dict(), '{0}/decoder_{1}.pth'.format(opt.experiment, epoch))
-        break
+        if epoch % opt.saveInterval == 0:
+            val(encoder, decoder, criterion, 1, dataset=test_dataset, teach_forcing=False)            # batchsize:1
+            torch.save(
+                encoder.state_dict(), '{0}/encoder_{1}.pth'.format(opt.experiment, epoch))
+            torch.save(
+                decoder.state_dict(), '{0}/decoder_{1}.pth'.format(opt.experiment, epoch))
+        # break
