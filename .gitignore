@@ -214,7 +214,7 @@ $RECYCLE.BIN/
 
 # End of https://www.gitignore.io/api/flask,python,windows,visualstudiocode
 
-data/
+#data/
 experiments/
 model_weights/
 .DS_Store
